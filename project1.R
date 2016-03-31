@@ -54,7 +54,7 @@ acf(elog)
 qqnorm(e)
 qqline(e)
 hist(e)
-     
+
 #Kolla om fel är normalfördelade qqnorm & histogram - log model
 qqnorm(elog)
 qqline(elog)
@@ -62,6 +62,20 @@ hist(elog)
 
 
 #3.2.5
-x_30 <- data.frame(30000) #Millions of dollares
-y_30 <- predict(physmodel,x_30)
-y_30_log <- predict(physmodellog, x_30)
+x_30 = c(1,30000) #Millions of dollares
+x_30log = c(1,log(30000))
+betahat = physmodel$coefficients
+betahatlog = physmodellog$coefficients
+y_30 = betahat%*%x_30
+y_30 = y_30[1,] 
+y_30_log = betahatlog%*%x_30log
+y_30_log = y_30_log[1,]
+
+#Confidence intervals
+n = length(pop)
+s = sqrt(sum(e^2)/(n-2))
+slog = sqrt(sum(elog^2)/(n-2))
+t_quant = qt(.05,n-2)
+ci_y_30 = y_30 + c(1,-1)*t_quant*s*sqrt((1/n)+(30000-mean(totinc)^2)/(sum((totinc-mean(totinc))^2)))
+ci_y_30log = y_30_log + c(1,-1)*t_quant*slog*sqrt((1/n)+(30000-mean(totinc)^2)/(sum((totinc-mean(totinc))^2)))
+#Båda värdena är rimliga och våra modeller bygger på observationer som finns i området runt 30 000 vilket även det gör att vi kan känna oss trygga med resultatet.
