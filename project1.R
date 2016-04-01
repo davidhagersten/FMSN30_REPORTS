@@ -16,17 +16,16 @@ pairs(~phys+pop+beds+totinc)
 
 #3.2.2 Tydligt enkelt linjärt samband
 
-#3.2.3Enkel linjär modell = Tar sämre hänsyn till lägre värden men tar bättre hänsyn till de 2 höga outliers
+#3.2.3 Enkel linjär modell
 physmodel <- lm(phys~totinc)
 summary(physmodel)
 plot(totinc, phys)
 abline(physmodel)
 
-#Enkel log modell = Tar sämre hänsyn till outliers då Residual standard error är högre. Men tar bättre hänsyn till de flesta punkterna då Multiple R-squared är lägre (0.52<0.9) 
-#Högt värde på intercept => passar ej för låg inc. countys samt hög inc. countys
-physmodellog <- lm(phys~log(totinc))
+#Enkel log modell
+physmodellog <- lm(log(phys)~log(totinc))
 summary(physmodellog)
-plot(log(totinc), phys)
+plot(log(totinc), log(phys))
 abline(physmodellog)
 
 
