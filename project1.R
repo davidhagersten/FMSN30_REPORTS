@@ -78,3 +78,32 @@ t_quant = qt(.05,n-2)
 ci_y_30 = y_30 + c(1,-1)*t_quant*s*sqrt((1/n)+(30000-mean(totinc)^2)/(sum((totinc-mean(totinc))^2)))
 ci_y_30log = y_30_log + c(1,-1)*t_quant*slog*sqrt((1/n)+(30000-mean(totinc)^2)/(sum((totinc-mean(totinc))^2)))
 #Båda värdena är rimliga och våra modeller bygger på observationer som finns i området runt 30 000 vilket även det gör att vi kan känna oss trygga med resultatet.
+
+# Multiple linear regression
+#3.3.1
+NE <- which(region==1)
+MW <- which(region==2)
+S <- which(region==3)
+NEregion <- mat.or.vec(n,1)
+NEregion[NE] = 1
+MWregion <- mat.or.vec(n,1)
+MWregion[MW] = 1
+Sregion <- mat.or.vec(n,1)
+Sregion[S] = 1
+
+#3.3.2
+myModel <- lm(phys~pop+totinc+NEregion+MWregion+Sregion)
+summary(myModel)
+pairs(~phys+pop+totinc+NEregion+MWregion+Sregion)
+# Only the south region seems to affect the number of physicans in a significant way.
+
+#3.3.3 Smaller Model
+mySmallModel <- lm(phys~pop+totinc)
+summary(mySmallModel)
+#The model using only the parameter with total income discribes almost as much of the data as the 5 parameters together. 
+#We should therefore reduce the model to the one with only one parameter, namle totinc.
+
+#3.3.4
+eMulti = phys - myModel$fit
+plot(eMulti)
+abline(h=0)
