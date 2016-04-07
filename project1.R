@@ -39,7 +39,7 @@ plot(e)
 abline(h=0)
 
 #Test of randomness of errors - log model
-elog = phys - physmodellog$fit
+elog = physmodellog$res
 plot(elog)
 abline(h=0)
 
@@ -77,6 +77,7 @@ slog = sqrt(sum(elog^2)/(n-2))
 t_quant = qt(.05,n-2)
 ci_y_30 = y_30 + c(1,-1)*t_quant*s*sqrt((1/n)+(30000-mean(totinc)^2)/(sum((totinc-mean(totinc))^2)))
 ci_y_30log = y_30_log + c(1,-1)*t_quant*slog*sqrt((1/n)+(30000-mean(totinc)^2)/(sum((totinc-mean(totinc))^2)))
+ci_y_30log = exp(ci_y_30log)
 #Båda värdena är rimliga och våra modeller bygger på observationer som finns i området runt 30 000 vilket även det gör att vi kan känna oss trygga med resultatet.
 
 # Multiple linear regression
@@ -93,17 +94,38 @@ Sregion[S] = 1
 
 #3.3.2
 myModel <- lm(phys~pop+totinc+NEregion+MWregion+Sregion)
+myModelLog <- lm(log(phys)~log(totinc)+pop+NEregion+MWregion+Sregion)
 summary(myModel)
+summary(myModelLog)
 pairs(~phys+pop+totinc+NEregion+MWregion+Sregion)
 # Only the south region seems to affect the number of physicans in a significant way.
 
 #3.3.3 Smaller Model
 mySmallModel <- lm(phys~pop+totinc)
 summary(mySmallModel)
+slm <- step(physmodel,scope = list(lower=physmodel,upper=myModel),direction = "both")
+slmLog <- step(physmodellog,scope = list(lower=physmodellog,upper=myModelLog),direction = "both")
+
 #The model using only the parameter with total income discribes almost as much of the data as the 5 parameters together. 
 #We should therefore reduce the model to the one with only one parameter, namle totinc.
+#The logarithmic model has a way lower AIC than the regular. But we are uncirtain if we can relate the numbers since AIC for log is negative
+
 
 #3.3.4
-eMulti = phys - myModel$fit
+eSlm <- slm$res
+eSlmLog <- slmLog$res
+eMulti = myModel$res
 plot(eMulti)
+plot(eSlm)
+plot(eSlmLog)
 abline(h=0)
+qqnorm(eSlmLog)
+qqnorm(eMulti)
+qqline(eMulti)
+# Too little randomness in the residuals for the regular. The log looks good
+
+#3.3.5
+pairs(~phys+pop65+higrads+pci+bachelors)
+pairs(~phys+pop1834+unemployed+poors)
+#There seems to be no strong relationship between physicians and the other parameters. We didn't do a proper test just used the 
+#pairs() funktion to see if there were a relationship.
