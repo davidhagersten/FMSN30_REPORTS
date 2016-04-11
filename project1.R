@@ -4,7 +4,8 @@ colnames(data_1) <- c("id","county","state","area","pop","pop1834","pop65","phys
 attach(data_1)
 #3.1 Plot crimes
 CRM1000 <- (crimes/pop)*1000
-plot(id,CRM1000)
+boxplot(CRM1000~state, data=data_1, notch=FALSE)
+#plot(id,CRM1000)
 
 #
 pairs(~county+state+area+pop+pop1834)
