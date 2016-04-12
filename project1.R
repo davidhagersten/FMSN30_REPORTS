@@ -126,7 +126,11 @@ qqline(eMulti)
 # Too little randomness in the residuals for the regular. The log looks good
 
 #3.3.5
-pairs(~phys+pop65+higrads+pci+bachelors)
-pairs(~phys+pop1834+unemployed+poors)
+
+pairs(~phys+totinc+pop+pop1834+pop65)
+pairs(~phys+totinc+pci+bachelors+higrads)
+pairs(~phys+totinc+unemployed+poors)
+#pairs(~phys+pop65+higrads+pci+bachelors)
+#pairs(~phys+pop1834+unemployed+poors)
 #There seems to be no strong relationship between physicians and the other parameters. We didn't do a proper test just used the 
 #pairs() funktion to see if there were a relationship.
