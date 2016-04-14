@@ -146,3 +146,25 @@ summary(physmodeltest)
 
 BIC(physmodeltest)
 #BIC = 558
+
+
+#3.3.5
+pairs(~phys+totinc+higrads+pci+bachelors)
+pairs(~phys+totinc+pop1834+pop65)
+pairs(~phys+totinc+unemployed+poors)
+pairs(~log(phys)+log(totinc)+CRM1000)
+
+
+#3.3.5 Testing to improve the R^2_adjusted and CRM1000 seems to do it!
+summary(physmodellog)
+AIC(physmodellog)
+
+physmodeltest <- lm(log(phys)~log(totinc)*CRM1000)
+summary(physmodeltest)
+AIC(physmodeltest)
+
+plot(physmodeltest$residuals)
+abline(h=0)
+qqnorm(physmodeltest$residuals)
+qqline(physmodeltest$residuals)
+acf(physmodeltest$residuals)
