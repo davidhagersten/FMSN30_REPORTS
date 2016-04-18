@@ -9,6 +9,7 @@ n = length(unemployed)
 idx <- which(unemployed >= 8)
 hiunemployed <- mat.or.vec(n,1)
 hiunemployed[idx] <- 1
+hiunemployed <- factor(hiunemployed,labels=c("low","high"))
 
 # Defining regions
 regions <- factor(region,labels = c("NE","MW","S","W"))
@@ -23,4 +24,11 @@ beta1 <- exp(model1$coefficients)
 
 # confidence interval
 ci1 <- confint(model1)
-exp(ci1) # OR compared to baseline parameter = West
+exp(ci1) # Odds Ratio (OR) compared to baseline parameter = West
+# The intervals witch includes 1 are not significant. Can also be seen in the summary.
+
+#3.1.2
+table1 <- table(regions,hiunemployed)
+dataTrash <- data.frame()
+agg <- aggregate(region,by=list(Region=regions),FUN=sum) # We want to aggregate to have it as we do in the table1!
+agg
