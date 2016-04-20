@@ -29,6 +29,31 @@ exp(ci1) # Odds Ratio (OR) compared to baseline parameter = West
 
 #3.1.2
 table1 <- table(regions,hiunemployed)
-dataTrash <- data.frame()
-agg <- aggregate(region,by=list(Region=regions),FUN=sum) # We want to aggregate to have it as we do in the table1!
-agg
+totW <- 59+18
+totNE <- 72 + 31
+totMW <- 87 + 21
+totS <- 133 + 19
+totLow <- 59+72+87+133
+totHigh <- 18+31+21+19
+
+# Proportions of high unemployment compared to region
+probW = 18/totW
+probNE = 31/totNE
+probMW = 21/totMW
+probS = 19/totS
+
+# ln Odds 
+lnOddsW <- log(probW/(1-probW))
+lnOddsNE <- log(probNE/(1-probNE))
+lnOddsMW <- log(probMW/(1-probMW))
+lnoddsS <- log(probS/(1-probS))
+
+# ln Odds Ratio
+lnORNE <- lnOddsNE - lnOddsW
+lnORMW <- lnOddsMW - lnOddsW
+lnORS <- lnoddsS - lnOddsW
+
+# Odds Ratio
+ORNE <- exp(lnORNE)
+ORMW <- exp(lnORMW)
+ORS <- exp(lnORS)
