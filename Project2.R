@@ -57,3 +57,23 @@ lnORS <- lnoddsS - lnOddsW
 ORNE <- exp(lnORNE)
 ORMW <- exp(lnORMW)
 ORS <- exp(lnORS)
+
+
+#3.2 Multivariate logistic regression
+
+#3.2.1. Let’s create the variable CRM1000 = 1000  (crimes/popul) 
+#that is number of crimes per 1,000 people. Check if CRM1000 alone 
+#is relevant to explain the probability of high unemployment by fitting a 
+#simple logistic regression model. Now consider the multivariate logistic model 
+#having region and crm1000 as covariates, what are your considerations? Discuss in detail.
+CRM1000 <- (crimes/pop)/1000
+modelCRM <- glm(hiunemployed~CRM1000,family = "binomial")
+summary(modelCRM)
+#Only intercept has 3 stars significance while CRM1000
+#have no star significance, this means that a 
+#flat line describes more of the data than the
+#covariate CRM1000.
+
+modelCRMextend <- glm(hiunemployed~CRM1000+regions,family = "binomial")
+summary(modelCRMextend)
+
