@@ -58,7 +58,6 @@ ORNE <- exp(lnORNE)
 ORMW <- exp(lnORMW)
 ORS <- exp(lnORS)
 
-
 #3.2 Multivariate logistic regression
 
 #3.2.1. Let’s create the variable CRM1000 = 1000  (crimes/popul) 
@@ -77,3 +76,27 @@ summary(modelCRM)
 modelCRMextend <- glm(hiunemployed~CRM1000+regions,family = "binomial")
 summary(modelCRMextend)
 
+modelCRMextendswitch <- glm(hiunemployed~regions+CRM1000,family = "binomial")
+summary(modelCRMextendswitch)
+
+#3.2.2
+# Get the covariance matrix
+cov <- summary(modelCRMextend)$cov.unscaled
+stdint <- sqrt(cov[1,1])
+stdb1 <- sqrt(cov[2,2])
+stdb2 <- sqrt(cov[3,3])
+stdb3 <- sqrt(cov[4,4])
+stdb4 <- sqrt(cov[5,5])
+
+
+#xbeta2 <- predict(modelCRMextend,se.fit=T)
+#selogodds<-xbeta2$se.fit # SE for logodds. Want to try "by hand"? get summary(model)$cov.unscaled
+#lo<-xbeta2$fit-1.96*selogodds # lower bound
+#hi<-xbeta2$fit+1.96*selogodds # upper bound
+#### Plot of 95% Conf.int. for log-odds #####################################:
+# here we plot the TRUE log(odds) in black, typically unknown in real experiments
+#plot(CRM1000)
+# here we add the logodds estimated from data (blue)
+#lines(CRM1000,xbeta2$fit,col="blue")
+#lines(CRM1000,lo,col="blue",lty=2) # lower 95% band
+#lines(CRM1000,hi,col="blue",lty=2) # upper 95% band
