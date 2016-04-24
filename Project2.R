@@ -100,3 +100,9 @@ stdb4 <- sqrt(cov[5,5])
 #lines(CRM1000,xbeta2$fit,col="blue")
 #lines(CRM1000,lo,col="blue",lty=2) # lower 95% band
 #lines(CRM1000,hi,col="blue",lty=2) # upper 95% band
+
+
+#3.2.3
+#Conduct a likelihood ratio test at 5% significance level for the comparison of the model containing only 
+#region as predictor vs the multivariate model. Motivate your conclusions.
+lrtest(modelCRMextend, model1)
