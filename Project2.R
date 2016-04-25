@@ -107,7 +107,8 @@ stdb4 <- sqrt(cov[5,5])
 #region as predictor vs the multivariate model. Motivate your conclusions.
 
 
+-2*(logLik(model1)[1]-logLik(modelCRMextend)[1]) #8.44
+# notice I did NOT use "anova" as this tests two models following the same distributions
+# but this is not our case. Hence I compute everything by hand
 
-#Måste installera paketet "lmtest" för att använda funktionen.
-# http://stats.stackexchange.com/questions/6505/likelihood-ratio-test-in-r
-#lrtest(modelCRMextend, model1)
+qchisq(1-0.05,1) # 3.84 < 8.44  --> We reject the Null model at 0.05 significance
