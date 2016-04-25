@@ -112,3 +112,24 @@ stdb4 <- sqrt(cov[5,5])
 # but this is not our case. Hence I compute everything by hand
 
 qchisq(1-0.05,1) # 3.84 < 8.44  --> We reject the Null model at 0.05 significance
+
+
+#3.2.4. Now create suitable subgroups for the crm1000 covariate then, for each subgroup and each region, 
+#estimate the observed proportions of “success” (high unemployment), then produce plots comparing such 
+#observed proportions with the estimated proportions of success as from the multivariate logistic regression 
+#model suggested above.
+
+
+
+#Plottning - Byt ut regions mot de nya regions.
+#pred1 <- predict.glm(modelCRMextend, data_1,  type = "response")  #Testad med data_1 och det gav samma resultat som nednför.
+predhi1 <- predict.glm(modelCRMextend, data=datfr[CRM1000, regions], type = "response")
+
+plot(regions, hiunemployed)
+plot(regions, predhi1)
+
+
+#3.2.5. Some graphical comparisons as from the plots above might not look satisfactory for some regions (also depending on how 
+#you created groups for crm1000). Use automatic selection tools to select a new model and produce again the graphical comparisons 
+#as in the previous question (do create subgroups for the crm1000 covariate not for other continuous variables that might have entered 
+#in the new model).
