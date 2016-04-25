@@ -106,6 +106,8 @@ stdb4 <- sqrt(cov[5,5])
 #Conduct a likelihood ratio test at 5% significance level for the comparison of the model containing only 
 #region as predictor vs the multivariate model. Motivate your conclusions.
 
+
+
 #Måste installera paketet "lmtest" för att använda funktionen.
 # http://stats.stackexchange.com/questions/6505/likelihood-ratio-test-in-r
 #lrtest(modelCRMextend, model1)
