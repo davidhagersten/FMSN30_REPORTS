@@ -155,3 +155,5 @@ model7 <- glm(hiunemployed~regions+bachelors+poors,family = "binomial")
 model8 <- glm(hiunemployed~regions+higrads+bachelors+poors,family = "binomial")
 model9 <- glm(hiunemployed~regions+CRM1000+higrads+bachelors+poors,family = "binomial")
 
+
+slm <- step(model1,scope = list(lower=model1,upper=model9),direction = "both")
