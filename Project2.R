@@ -143,4 +143,15 @@ pairs(~unemployed+higrads+bachelors)
 #Poor seems to affect unemployed but that is almost self evident
 pairs(~unemployed+poors)
 
+###Saknar modeller med de ytterligare uppdelade CRM1000 regionerna.
+model1 <- glm(hiunemployed~regions,family = "binomial")
+model2 <- glm(hiunemployed~regions+CRM1000,family = "binomial")
+model3 <- glm(hiunemployed~regions+CRM1000+higrads,family = "binomial")
+model4 <- glm(hiunemployed~regions+CRM1000+higrads+bachelors,family = "binomial")
+model5 <- glm(hiunemployed~regions+CRM1000+higrads+bachelors+poors,family = "binomial")
+
+model6 <- glm(hiunemployed~regions+poors,family = "binomial")
+model7 <- glm(hiunemployed~regions+bachelors+poors,family = "binomial")
+model8 <- glm(hiunemployed~regions+higrads+bachelors+poors,family = "binomial")
+model9 <- glm(hiunemployed~regions+CRM1000+higrads+bachelors+poors,family = "binomial")
 
