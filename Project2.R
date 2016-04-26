@@ -133,3 +133,14 @@ plot(regions, predhi1)
 #you created groups for crm1000). Use automatic selection tools to select a new model and produce again the graphical comparisons 
 #as in the previous question (do create subgroups for the crm1000 covariate not for other continuous variables that might have entered 
 #in the new model).
+
+#CRM1000 seem to affect the model just minimal
+pairs(~unemployed+CRM1000)
+
+#High Grads and bachelors seem to affect unemployed
+pairs(~unemployed+higrads+bachelors)
+
+#Poor seems to affect unemployed but that is almost self evident
+pairs(~unemployed+poors)
+
+
