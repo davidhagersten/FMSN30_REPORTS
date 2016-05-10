@@ -13,9 +13,20 @@ attach(data_1)
 #***  Explore and try to take initiative.
 
 
+###We try to do the same with PCI data below instead of CRM.
+
+
 #1. Do some initial descriptives, for example plot the empirical distribution of CRM1000* and check whether some
 #characteristics for the distribution of CRM1000* vary conditionally on the region (i.e. depending on the region).
+regions <- factor(region,labels = c("NE","MW","S","W"))
+regions <- relevel(regions,"W")
 
+pci2 = ceiling(pci)
+hist(pci[regions=="W"])
+hist(pci[regions=="MW"])
+hist(pci[regions=="NE"])
+hist(pci[regions=="S"])
+#It looks like the data for all the regions might be a good fit for Poisson distribution.
 
 
 #2. Do you see potential for Poisson regression to be of help in this case or do you foresee problems? Discuss.
@@ -45,8 +56,8 @@ attach(data_1)
 
 
 #6. (partially shown at lecture when discussing quantiles for discrete distributions) Compute the probability that, for a
-#generic county in the Western region, CRM ∗ 1000 is between, say, 60 and 80 using the estimated Poisson and NB
-#models. Do you find any striking difference?
+#generic county in the Western region, CRM1000* is between, say, 60 and 80 using the estimated Poisson and NB models.
+#Do you find any striking difference?
 
 
 
