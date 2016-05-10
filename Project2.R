@@ -65,7 +65,7 @@ ORS <- exp(lnORS)
 #is relevant to explain the probability of high unemployment by fitting a 
 #simple logistic regression model. Now consider the multivariate logistic model 
 #having region and crm1000 as covariates, what are your considerations? Discuss in detail.
-CRM1000 <- (crimes/pop)/1000
+CRM1000 <- (crimes/pop)*1000
 modelCRM <- glm(hiunemployed~CRM1000,family = "binomial")
 summary(modelCRM)
 #Only intercept has 3 stars significance while CRM1000
