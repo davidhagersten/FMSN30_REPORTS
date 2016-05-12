@@ -1,0 +1,141 @@
+# Project 3
+
+require(MASS)
+install.packages("quantreg")
+library(quantreg)
+
+## Read data
+data_1 <- read.table("http://www.maths.lth.se/matstat/kurser/masm22/exercise/dataCDI.txt",header=FALSE,sep="")
+colnames(data_1) <- c("id","county","state","area","pop","pop1834","pop65","phys","beds","crimes","higrads","bachelors","poors","unemployed","pci","totinc","region")
+attach(data_1)
+
+## Creating variables
+n = 440
+crm <- (crimes/pop)*1000
+crm <- ceiling(crm)
+
+regions <- factor(region,labels = c("NE","MW","S","W"))
+regions <- relevel(regions,"W")
+
+x_w = mat.or.vec(n,1)
+x_w[regions=="W"] = 1
+x_ne = mat.or.vec(n,1)
+x_ne[regions=="NE"] = 1
+x_mw = mat.or.vec(n,1)
+x_mw[regions=="MW"] = 1
+x_s = mat.or.vec(n,1)
+x_s[regions=="S"] = 1
+
+regs <- data.frame(crm=crm, West=x_w, NorthEast=x_ne, MidWest=x_mw, South=x_s )
+## Plots
+hist(crm[regions=="W"])
+hist(crm[regions=="NE"])
+hist(crm[regions=="MW"])
+hist(crm[regions=="S"])
+
+## Fit model calculate mean from each regon by hand using formula. compute probability with dpois.
+modelPo <- glm(crm~regions,family = "poisson",data = regs)
+summary(modelPo)
+
+## Calculate estimate of the linear part mu_i = X_i*b
+xb_hat <- predict(modelPo,se.fit=T)
+mu_hat <- predict(modelPo,type = "response")
+
+## Confints at 95% for x_i*b
+cixb_lo<-xb_hat$fit-1.96*xb_hat$se.fit
+cixb_hi<-xb_hat$fit+1.96*xb_hat$se.fit
+
+## transform to mu_i
+cimu_lo<-exp(cixb_lo)
+cimu_hi<-exp(cixb_hi)
+
+## Calculate estimated mu
+beta <- modelPo$coefficients
+b <- exp(beta)
+mu_hatW <- exp(beta[1])
+mu_hatNE <- exp(beta[1]+beta[2])
+mu_hatMW <- exp(beta[1]+beta[3])
+mu_hatS <- exp(beta[1]+beta[4])
+
+## Compute estimated probabilities
+x <- seq(0,150,1)
+y_hatW <- dpois(x,mu_hatW)
+y_hatNE <- dpois(x,mu_hatNE)
+y_hatMW <- dpois(x,mu_hatMW)
+y_hatS <- dpois(x,mu_hatS)
+
+## Plot empirical distribution and predicted distribution for Poission
+hist(crm[regions=="W"],col="blue",ylim=c(0,.05),freq=FALSE)
+points(y_hatW,col="red")
+
+hist(crm[regions=="NE"],col="blue",freq=FALSE)
+points(y_hatNE,col="red")
+
+hist(crm[regions=="MW"],col="blue",freq=FALSE)
+points(y_hatMW,col="red")
+
+hist(crm[regions=="S"],col="blue",freq=FALSE)
+points(y_hatS,col="red")
+
+plot(regions,crm)
+
+## 4. NB regression
+## Fit model
+modelNB <- glm.nb(crm~regions)
+summary(modelNB)
+
+## Calculate estimated mu
+betaNB <- modelNB$coefficients
+bNB <- exp(betaNB)
+mu_NBW <- exp(betaNB[1])
+mu_NBNE <- exp(betaNB[1]+betaNB[2])
+mu_NBMW <- exp(betaNB[1]+betaNB[3])
+mu_NBS <- exp(betaNB[1]+betaNB[4])
+
+## Compute estimated probabilities
+
+y_NBW <- dpois(x,mu_NBW)
+y_NBNE <- dpois(x,mu_NBNE)
+y_NBMW <- dpois(x,mu_NBMW)
+y_NBS <- dpois(x,mu_NBS)
+normW <- dnorm(x,mu_NBW)
+
+## Plot empirical distribution and predicted distribution for NB
+hist(crm[regions=="W"],col="blue",freq=FALSE,breaks=12,ylim = c(0,.05))
+points(y_NBW,col="red")
+lines(y_NBW,col="red")
+points(normW,col="green")
+
+hist(crm[regions=="NE"],col="blue",freq=FALSE,breaks=12,ylim = c(0,.05))
+points(y_NBNE,col="red")
+lines(y_NBNE,col="red")
+
+hist(crm[regions=="MW"],col="blue",freq=FALSE,breaks=12,ylim = c(0,.05))
+points(y_NBMW,col="red")
+lines(y_NBMW,col="red")
+
+hist(crm[regions=="S"],col="blue",freq=FALSE,breaks=12,ylim = c(0,.05))
+points(y_NBS,col="red")
+lines(y_NBS,col="red")
+
+## 5. Compare models
+-2*(logLik(modelPo)[1]-logLik(modelNB)[1]) # 2750
+qchisq(1-0.05,1) # 3.84 < 2750 reject Poisson model at 0.05 significance 
+
+## 6. probability of crm for generic western region between 60-80
+probPO <- sum(y_hatW[60:80])
+probNB <- sum(y_NBW[60:80])
+
+## 7. Linear regression
+modelL <- lm(crm~regions) 
+summary(modelL) # seems irrelevant
+
+## 8. quantile regression
+modelQ <- rq(crm~regions, tau=c(.1,.5,.9))
+y_rq <- predict(modelQ)
+summary(modelQ)
+
+## Extract coefficients
+betaQ <- coef(modelQ)
+## Extract residuals 
+resQ <- resid(modelQ)
