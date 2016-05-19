@@ -3,13 +3,16 @@ data_1 <- read.table("http://www.maths.lth.se/matstat/kurser/masm22/exercise/dat
 colnames(data_1) <- c("id","county","state","area","pop","pop1834","pop65","phys","beds","crimes","higrads","bachelors","poors","unemployed","pci","totinc","region")
 attach(data_1)
 
-
+## Requires once:
+#install.packages("quantreg")
 #install.packages("ggplot2")
 #install.packages("quantreg")
+#and in every session:
 library(quantreg)
 require(foreign)
 require(ggplot2)
 require(MASS)
+library(quantreg)
 
 crm = (crimes/pop)*1000
 
@@ -96,8 +99,8 @@ BIC(POI) #POISSON BIC  = 34 732
 BIC(NB)  #NB BIC       =  8 494
 BIC(NB2) #NB2 BIC      =  8 177
 
-#pciNB2 <- update(pciNB, . ~ . - regions)
-#anova(pciNB, pciNB2)
+#NB2 <- update(NB, . ~ . - regions)
+#anova(NB, NB2)
 
 -2*(logLik(NB)[1]-logLik(POI)[1])     #-332244.5
 qchisq(1-0.05,1)                      # 3.84 with alpha=5%
@@ -108,21 +111,19 @@ qchisq(1-0.05,1)                      # 3.84 with alpha=5%
 #generic county in the Western region, CRM1000* is between, say, 60 and 80 using the estimated Poisson and NB models.
 #Do you find any striking difference?
 
-y <- seq(0,40000,1)
+y <- seq(0,40000,1000)
 POIcoeff <- POI$coefficients
 mu_hat_POI = exp(POIcoeff[1])
 
-#Likelyhood that a West region has 20k-25k PCI:
-#pPOI25k <- ppois(25,mu_hat_POI)
-#pPOI20k <- ppois(20,mu_hat_POI)
-#pPOI <- (pPOI25k-pPOI20k)*100 
+#Likelyhood that a West region has 18k-10k PCI:
+pPOI <- (ppois(18000,mu_hat_POI)-ppois(10000,mu_hat_POI))*100 
 
 #For plotting the probability density function 
 Py<-dpois(y,mu_hat_POI, log = FALSE)
 #Py<-dpois(y,mu_hat_POI, log = FALSE)
 plot(y, Py, type="h",ylim=c(0,0.0035), xlim=c(0,40000),xlab="y",ylab="P(Y=y)", main="Poisson distributions")
 sum(Py)
-sum(Py[0:18000])
+sum(Py[0:40000])
 
 #Py<-(dpois(pci[regions=="W"],mu_hat_POI))
 #plot(pci[regions=="W"], Py, type="h",ylim=c(0,0.0015), xlim=c(0,40000),xlab="y",ylab="P(Y=y)", main="Poisson distributions")
@@ -132,19 +133,39 @@ sum(Py[0:18000])
 NBcoeff <- NB$coefficients
 mu_hat_NB = exp(NBcoeff[1])
 
-PyNB<-dnbinom(y,1,, mu_hat_NB)
+PyNB <- dnbinom(y,25.28, mu_hat_NB)
 plot(y, PyNB, type="h",ylim=c(0,0.0015), xlim=c(0,40000),xlab="y",ylab="P(Y=y)", main="Poisson distributions")
 
 
 #7. (not explicitly shown at lecture) Compute the probability as in point 7 for when a linear regression model is used,
 #with response variable logCRM1000* and region as covariate. Compare with the results obtained in 7.
-
-
+L <- lm(pci~regions)
+summary(L)
+pL = pnorm(18000, 18322.58, 444.02)-pnorm(10000, 18322.58, 444.02)
 
 #8. Use the “distribution-free” quantile regression method to compute median criminality conditionally on the several regions
 #and check if this is any similar to the mean criminality as estimated with linear regression and NB
 #regression, for the several regions. In addition check that the 2.5-97.5th quantiles are similar (or not) to the 95%
 #confidence bounds returned by linear and/or NB regression.
+
+## Quantile regression:
+RQ <- rq(pci ~ regions, tau=c(.1,.5,.9))
+## See help(predict.rq) for more info:
+yRQ <- predict(RQ)
+plot(regions, yRQ)
+lines(pci,yRQ[,1],col="red")
+lines(pci,yRQ[,2],col="red")
+lines(pci,yRQ[,3],col="red")
+
+sum <- summary(RQ)
+sum
+## Extract coefficients:
+beta <- coef(RQ)
+beta
+## Extract residuals:
+res <- resid(RQ)
+res
+
 
 
 
