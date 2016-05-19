@@ -65,19 +65,18 @@ y_hatMW <- dpois(x,mu_hatMW)
 y_hatS <- dpois(x,mu_hatS)
 
 ## Plot empirical distribution and predicted distribution for Poission
-hist(crm[regions=="W"],col="blue",ylim=c(0,.05),freq=FALSE)
+hist(crm[regions=="W"],col="blue",ylim=c(0,.05),freq=FALSE,breaks=c(5*6:20))
 points(y_hatW,col="red")
 
-hist(crm[regions=="NE"],col="blue",freq=FALSE)
+hist(crm[regions=="NE"],col="blue",freq=FALSE,breaks=c(25*0:12))
 points(y_hatNE,col="red")
 
-hist(crm[regions=="MW"],col="blue",freq=FALSE)
+hist(crm[regions=="MW"],col="blue",freq=FALSE,breaks=c(12*0:15))
 points(y_hatMW,col="red")
 
-hist(crm[regions=="S"],col="blue",freq=FALSE)
+hist(crm[regions=="S"],col="blue",freq=FALSE,breaks = c(5*5:30))
 points(y_hatS,col="red")
 
-plot(regions,crm)
 
 ## 4. NB regression
 ## Fit model
@@ -94,29 +93,31 @@ mu_NBS <- exp(betaNB[1]+betaNB[4])
 
 ## Compute estimated probabilities
 
-y_NBW <- dpois(x,mu_NBW)
-y_NBNE <- dpois(x,mu_NBNE)
-y_NBMW <- dpois(x,mu_NBMW)
-y_NBS <- dpois(x,mu_NBS)
-normW <- dnorm(x,mu_NBW)
+y_NBW <- dnbinom(x,mu=mu_NBW,size = 6.627)
+y_NBNE <- dnbinom(x,mu=mu_NBNE,size = 6.627)
+y_NBMW <- dnbinom(x,mu=mu_NBMW,size = 6.627)
+y_NBS <- dnbinom(x,mu=mu_NBS,size = 6.627)
+
 
 ## Plot empirical distribution and predicted distribution for NB
-hist(crm[regions=="W"],col="blue",freq=FALSE,breaks=12,ylim = c(0,.05))
-points(y_NBW,col="red")
-lines(y_NBW,col="red")
-points(normW,col="green")
+hist(crm[regions=="W"],col="blue",ylim=c(0,.05),freq=FALSE,breaks=c(5*6:20))
+points(y_hatW,col="red")
+points(y_NBW,col="green")
 
-hist(crm[regions=="NE"],col="blue",freq=FALSE,breaks=12,ylim = c(0,.05))
-points(y_NBNE,col="red")
-lines(y_NBNE,col="red")
+hist(crm[regions=="NE"],col="blue",freq=FALSE,breaks=c(25*0:12))
+points(y_hatNE,col="red")
+points(y_NBNE,col="green")
+lines(y_NBNE,col="green")
 
-hist(crm[regions=="MW"],col="blue",freq=FALSE,breaks=12,ylim = c(0,.05))
-points(y_NBMW,col="red")
-lines(y_NBMW,col="red")
+hist(crm[regions=="MW"],col="blue",freq=FALSE,breaks=c(12*0:15))
+points(y_hatMW,col="red")
+points(y_NBMW,col="green")
+lines(y_NBMW,col="green")
 
-hist(crm[regions=="S"],col="blue",freq=FALSE,breaks=12,ylim = c(0,.05))
-points(y_NBS,col="red")
-lines(y_NBS,col="red")
+hist(crm[regions=="S"],col="blue",freq=FALSE,breaks = c(5*5:30))
+points(y_hatS,col="red")
+points(y_NBS,col="green")
+lines(y_NBS,col="green")
 
 ## 5. Compare models
 -2*(logLik(modelPo)[1]-logLik(modelNB)[1]) # 2750
@@ -126,12 +127,30 @@ qchisq(1-0.05,1) # 3.84 < 2750 reject Poisson model at 0.05 significance
 probPO <- sum(y_hatW[60:80])
 probNB <- sum(y_NBW[60:80])
 
+probPo <- ppois(80,mu_hatW)-ppois(60,mu_hatW)
+probNB <- pnbinom(q=80,size=6.627,mu=mu_hatW)-pnbinom(q=60,size=6.627,mu=mu_hatW)
+
+# The Poisson model overestimates alot compared with the NB model, factor of 2.
+
 ## 7. Linear regression
 modelL <- lm(crm~regions) 
-summary(modelL) # seems irrelevant
+summary(modelL) 
+
+mu_LW <- modelL$coefficients[1]
+mu_LNE <- modelL$coefficients[1]+modelL$coefficients[2]
+mu_LMW <- modelL$coefficients[1]+modelL$coefficients[3]
+mu_LS <- modelL$coefficients[1]+modelL$coefficients[4]
+
+y_LW <- dnorm(x,mu_LW,2.828)
+
+## Plot of linear regression for West
+hist(crm[regions=="W"],col="blue",ylim=c(0,.05),freq=FALSE,breaks=c(5*6:20))
+points(y_hatW,col="red")
+points(y_NBW,col="green")
+points(y_LW, col="orange")
 
 ## 8. quantile regression
-modelQ <- rq(crm~regions, tau=c(.1,.5,.9))
+modelQ <- rq(crm~regions, tau=c(.025,.5,.975))
 y_rq <- predict(modelQ)
 summary(modelQ)
 
@@ -139,3 +158,23 @@ summary(modelQ)
 betaQ <- coef(modelQ)
 ## Extract residuals 
 resQ <- resid(modelQ)
+
+## Compare median fron QR with mean in NB and Linear
+ciNBW_lo<-exp(log(mu_hatW)-1.96*.0466) # 67.2
+ciNBW_hi<-exp(log(mu_hatW)+1.96*.0466) # 56.0
+
+ciLW_lo <- mu_hatW-1.96*2.828 # 66.9
+ciLW_hi <- mu_hatW+1.96*2.828 # 55.8
+
+## Table for the median QR model
+#tau: [1] 0.5
+
+#Coefficients:
+#           coefficients  lower bd  upper bd 
+#(Intercept)  60.00000     50.26787  64.73213
+#regionsNE   -25.00000    -27.97077 -16.05845
+#regionsMW   -11.00000    -17.05153   1.52576
+#regionsS     10.00000      4.21579  21.89210
+
+#Call: rq(formula = crm ~ regions, tau = c(0.025, 0.5, 0.975))
+# Will not yield the smallest variance but can still yield a good model. 
