@@ -1,7 +1,5 @@
-#Read data from homepage
-data_1 <- read.table("http://www.maths.lth.se/matstat/kurser/masm22/exercise/dataCDI.txt",header=FALSE,sep="")
-colnames(data_1) <- c("id","county","state","area","pop","pop1834","pop65","phys","beds","crimes","higrads","bachelors","poors","unemployed","pci","totinc","region")
-attach(data_1)
+# Project 3 - CRM is done first then PCI
+
 
 ## Requires once:
 #install.packages("quantreg")
@@ -14,33 +12,217 @@ require(ggplot2)
 require(MASS)
 library(quantreg)
 
-crm = (crimes/pop)*1000
 
-###We try to do the same as described below with PCI data below instead of CRM.
+## Read data
+data_1 <- read.table("http://www.maths.lth.se/matstat/kurser/masm22/exercise/dataCDI.txt",header=FALSE,sep="")
+colnames(data_1) <- c("id","county","state","area","pop","pop1834","pop65","phys","beds","crimes","higrads","bachelors","poors","unemployed","pci","totinc","region")
+attach(data_1)
 
-#An example (for inspiration): 1 Suppose you are interested in modelling the CRM 1000 variable (number of crimes 
-#per 1000 people, defined as (crimes/popul) * 1000) considered in the previous two projects. Since Poisson- and
-#NB-distributed random variables take values on the set of non-negative integers, we are required to first approximate
-#CRM 1000 to take integer values. For example, create the variable CRM1000* = ceiling(CRM 1000) and, in practice, 
-#use CRM1000* as response variable for your analyses.
+## Creating variables
+n = 440
+crm <- (crimes/pop)*1000
+crm <- ceiling(crm)
 
-#***  Consider that unlike in reports, in a presentation you do not have to answer point-by-point to the suggested ideas. 
-#***  Explore and try to take initiative.
-
-
-
-#1. Do some initial descriptives, for example plot the empirical distribution of CRM1000* and check whether some
-#characteristics for the distribution of CRM1000* vary conditionally on the region (i.e. depending on the region).
 regions <- factor(region,labels = c("NE","MW","S","W"))
 regions <- relevel(regions,"W")
 
-#pci2 = ceiling(pci)
-#hist(pci[regions=="W"])
-#hist(pci[regions=="MW"])
-#hist(pci[regions=="NE"])
-#hist(pci[regions=="S"])
+x_w = mat.or.vec(n,1)
+x_w[regions=="W"] = 1
+x_ne = mat.or.vec(n,1)
+x_ne[regions=="NE"] = 1
+x_mw = mat.or.vec(n,1)
+x_mw[regions=="MW"] = 1
+x_s = mat.or.vec(n,1)
+x_s[regions=="S"] = 1
 
+regs <- data.frame(crm=crm, West=x_w, NorthEast=x_ne, MidWest=x_mw, South=x_s )
+## Plots
 #ANVÄNDNING AV GGPLOT2 FÖR SNYGGA GRAFER
+dat <-within(data_1, {
+  regions <- factor(region,labels = c("NE","MW","S","W"))
+  regions <- relevel(regions,"W")
+  id <- factor(id)
+  crm <- (crimes/pop)*1000
+})
+
+ggplot(dat, aes(crm, fill = regions)) +
+  geom_histogram(binwidth=5) +
+  facet_grid(regions ~. , margins=TRUE, scales="free")
+
+
+hist(crm[regions=="W"])
+hist(crm[regions=="NE"])
+hist(crm[regions=="MW"])
+hist(crm[regions=="S"])
+
+## Fit model calculate mean from each regon by hand using formula. compute probability with dpois.
+modelPo <- glm(crm~regions,family = "poisson",data = regs)
+summary(modelPo)
+
+## Calculate estimate of the linear part mu_i = X_i*b
+xb_hat <- predict(modelPo,se.fit=T)
+mu_hat <- predict(modelPo,type = "response")
+
+## Confints at 95% for x_i*b
+cixb_lo<-xb_hat$fit-1.96*xb_hat$se.fit
+cixb_hi<-xb_hat$fit+1.96*xb_hat$se.fit
+
+## transform to mu_i
+cimu_lo<-exp(cixb_lo)
+cimu_hi<-exp(cixb_hi)
+
+## Calculate estimated mu
+beta <- modelPo$coefficients
+b <- exp(beta)
+mu_hatW <- exp(beta[1])
+mu_hatNE <- exp(beta[1]+beta[2])
+mu_hatMW <- exp(beta[1]+beta[3])
+mu_hatS <- exp(beta[1]+beta[4])
+
+## Compute estimated probabilities
+x <- seq(0,150,1)
+y_hatW <- dpois(x,mu_hatW)
+y_hatNE <- dpois(x,mu_hatNE)
+y_hatMW <- dpois(x,mu_hatMW)
+y_hatS <- dpois(x,mu_hatS)
+
+## Plot empirical distribution and predicted distribution for Poission
+hist(crm[regions=="W"],col="blue",ylim=c(0,.05),freq=FALSE,breaks=c(5*6:20))
+points(y_hatW,col="red")
+
+hist(crm[regions=="NE"],col="blue",freq=FALSE,breaks=c(25*0:12))
+points(y_hatNE,col="red")
+
+hist(crm[regions=="MW"],col="blue",freq=FALSE,breaks=c(12*0:15))
+points(y_hatMW,col="red")
+
+hist(crm[regions=="S"],col="blue",freq=FALSE,breaks = c(5*5:30))
+points(y_hatS,col="red")
+
+
+## 4. NB regression
+## Fit model
+modelNB <- glm.nb(crm~regions)
+summodelNB = summary(modelNB)
+
+## Calculate estimated mu
+betaNB <- modelNB$coefficients
+bNB <- exp(betaNB)
+mu_NBW <- exp(betaNB[1])
+mu_NBNE <- exp(betaNB[1]+betaNB[2])
+mu_NBMW <- exp(betaNB[1]+betaNB[3])
+mu_NBS <- exp(betaNB[1]+betaNB[4])
+
+## Compute estimated probabilities
+
+y_NBW <- dnbinom(x,mu=mu_NBW,size = summodelNB$theta)
+y_NBNE <- dnbinom(x,mu=mu_NBNE,size = summodelNB$theta)
+y_NBMW <- dnbinom(x,mu=mu_NBMW,size = summodelNB$theta)
+y_NBS <- dnbinom(x,mu=mu_NBS,size = summodelNB$theta)
+
+
+## Plot empirical distribution and predicted distribution for NB
+hist(crm[regions=="W"],col="blue",ylim=c(0,.05),freq=FALSE,breaks=c(5*6:20))
+points(y_hatW,col="red")
+points(y_NBW,col="green")
+
+hist(crm[regions=="NE"],col="blue",freq=FALSE,breaks=c(25*0:12))
+points(y_hatNE,col="red")
+points(y_NBNE,col="green")
+lines(y_NBNE,col="green")
+
+hist(crm[regions=="MW"],col="blue",freq=FALSE,breaks=c(12*0:15))
+points(y_hatMW,col="red")
+points(y_NBMW,col="green")
+lines(y_NBMW,col="green")
+
+hist(crm[regions=="S"],col="blue",freq=FALSE,breaks = c(5*5:30))
+points(y_hatS,col="red")
+points(y_NBS,col="green")
+lines(y_NBS,col="green")
+
+## 5. Compare models
+-2*(logLik(modelPo)[1]-logLik(modelNB)[1]) # 2750
+qchisq(1-0.05,1) # 3.84 < 2750 reject Poisson model at 0.05 significance 
+
+## 6. probability of crm for generic western region between 60-80
+probPO <- sum(y_hatW[60:80])
+probNB <- sum(y_NBW[60:80])
+
+probPo <- ppois(80,mu_hatW)-ppois(60,mu_hatW)
+probNB <- pnbinom(q=80,size=6.627,mu=mu_hatW)-pnbinom(q=60,size=6.627,mu=mu_hatW)
+
+# The Poisson model overestimates alot compared with the NB model, factor of 2.
+
+## 7. Linear regression
+modelL <- lm(crm~regions) 
+summodelL = summary(modelL)
+
+mu_LW <- modelL$coefficients[1]
+mu_LNE <- modelL$coefficients[1]+modelL$coefficients[2]
+mu_LMW <- modelL$coefficients[1]+modelL$coefficients[3]
+mu_LS <- modelL$coefficients[1]+modelL$coefficients[4]
+
+y_LW <- dnorm(x,mu_LW,summodelL$coefficients[5])
+
+## Plot of linear regression for West
+hist(crm[regions=="W"],col="blue",ylim=c(0,.05),freq=FALSE,breaks=c(5*6:20))
+points(y_hatW,col="red")
+points(y_NBW,col="green")
+points(y_LW, col="orange")
+
+## 8. quantile regression
+modelQ <- rq(crm~regions, tau=c(.025,.5,.975))
+y_rq <- predict(modelQ)
+summary(modelQ)
+
+## Extract coefficients
+betaQ <- coef(modelQ)
+## Extract residuals 
+resQ <- resid(modelQ)
+
+## Compare median fron QR with mean in NB and Linear
+ciNBW_lo<-exp(log(mu_hatW)-1.96*summodelL$coefficients[5]) # 67.2
+ciNBW_hi<-exp(log(mu_hatW)+1.96*summodelL$coefficients[5]) # 56.0
+
+
+
+
+
+
+
+
+
+
+
+
+
+#PCI sammanställning
+
+## Creating variables
+n = 440
+
+regions <- factor(region,labels = c("NE","MW","S","W"))
+regions <- relevel(regions,"W")
+
+x_w = mat.or.vec(n,1)
+x_w[regions=="W"] = 1
+x_ne = mat.or.vec(n,1)
+x_ne[regions=="NE"] = 1
+x_mw = mat.or.vec(n,1)
+x_mw[regions=="MW"] = 1
+x_s = mat.or.vec(n,1)
+x_s[regions=="S"] = 1
+
+#REGULAR R-plots
+#regs <- data.frame(pci=pci, West=x_w, NorthEast=x_ne, MidWest=x_mw, South=x_s )
+## Plots
+#hist(crm[regions=="W"])
+#hist(crm[regions=="NE"])
+#hist(crm[regions=="MW"])
+#hist(crm[regions=="S"])
+
+#USING GGPLOT2 TO GET GOOD LOOKING GRAPHS
 dat <-within(data_1, {
   regions <- factor(region,labels = c("NE","MW","S","W"))
   regions <- relevel(regions,"W")
@@ -52,125 +234,144 @@ ggplot(dat, aes(pci, fill = regions)) +
   geom_histogram(binwidth=1000) +
   facet_grid(regions ~. , margins=TRUE, scales="free")
 
-
-#2. Do you see potential for Poisson regression to be of help in this case or do you foresee problems? Discuss.
-
-#It looks like the data for all the regions might be a good fit for an Poisson distribution.
-
-
-#3. Regardless of the considerations above, fit a Poisson regression model for the dependence between CRM1000*
-#and the U.S. regions. Comment on results. Among several things that could be done, initially you might want to
-#compare estimated mean and variance for your responses against the empirical distributions created in point 1.
-
-POI <- glm(pci~regions, family = "poisson")
+## Fit model calculate mean from each regon by hand using formula. compute probability with dpois.
+POI <- glm(pci~regions,family = "poisson",data = regs)
 summary(POI)
 
-#POI2 <- glm(pci~regions+bachelors, family = "poisson")
-#summary(POI2)
+## Calculate estimate of the linear part mu_i = X_i*b
+xb_hat <- predict(POI,se.fit=T)
+mu_hat <- predict(POI,type = "response")
+
+## Confints at 95% for x_i*b
+cixb_lo<-xb_hat$fit-1.96*xb_hat$se.fit
+cixb_hi<-xb_hat$fit+1.96*xb_hat$se.fit
+
+## transform to mu_i
+cimu_lo<-exp(cixb_lo)
+cimu_hi<-exp(cixb_hi)
+
+## Calculate estimated mu
+beta <- POI$coefficients
+b <- exp(beta)
+mu_hatW <- exp(beta[1])
+mu_hatNE <- exp(beta[1]+beta[2])
+mu_hatMW <- exp(beta[1]+beta[3])
+mu_hatS <- exp(beta[1]+beta[4])
+
+## Compute estimated probabilities
+x <- seq(10000,40000,500)
+y_hatW <- dpois(x,mu_hatW)
+y_hatNE <- dpois(x,mu_hatNE)
+y_hatMW <- dpois(x,mu_hatMW)
+y_hatS <- dpois(x,mu_hatS)
+
+## Plot empirical distribution and predicted distribution for Poission
+hist(pci[regions=="W"],col="blue",freq=FALSE,ylim=c(0,.0001))
+points(x, y_hatW,pch = 21, col="red")
+
+hist(pci[regions=="NE"],col="blue",freq=FALSE)
+points(x, y_hatNE,col="red")
+
+hist(pci[regions=="MW"],col="blue",freq=FALSE)
+points(x, y_hatMW,col="red")
+
+hist(pci[regions=="S"],col="blue",freq=FALSE)
+points(y_hatS,col="red")
 
 
-#Secondarily, separately for each region, superimpose the estimated/fitted Poisson 
-#distributions of CRM1000* over the corresponding empirical histograms. [Note that for such a comparison you might want to use 
-#hist(...,freq=FALSE) so your histogram shows relative frequencies. This allows a more meaningful comparison with estimated/fitted 
-#Poisson distributions.)]
-
-
-
-#4. Now fit the same model using NB regression. As compared to Poisson regression, do you think this model is
-#more appropriate for our scenario? Why? Plot and compare distributions as in point 3 using the new model.
-
-NB <- glm.nb(pci~regions, data_1)
-summary(NB)
-summary(POI)
-#Plot the same way as in 3.
+## 4. NB regression
+## Fit model
+NB <- glm.nb(pci~regions)
+sumNB = summary(NB)
 
 NB2 <- glm.nb(pci~regions+bachelors, data_1)
 summary(NB2)
 BIC(NB2)
 
-
 NB3 <- glm.nb(pci~regions+bachelors, data_1)
 summary(NB3)
 BIC(NB3)
 
-#5. Use an appropriate test to conclude whether the NB model with region as predictor is more appropriate than
-#the corresponding Poisson model.
-BIC(POI) #POISSON BIC  = 34 732
-BIC(NB)  #NB BIC       =  8 494
-BIC(NB2) #NB2 BIC      =  8 177
+## Calculate estimated mu
+betaNB <- NB$coefficients
+bNB <- exp(betaNB)
+mu_NBW <- exp(betaNB[1])
+mu_NBNE <- exp(betaNB[1]+betaNB[2])
+mu_NBMW <- exp(betaNB[1]+betaNB[3])
+mu_NBS <- exp(betaNB[1]+betaNB[4])
 
+## Compute estimated probabilities
+
+y_NBW <- dnbinom(x,mu=mu_NBW,size = sumNB$theta)
+y_NBNE <- dnbinom(x,mu=mu_NBNE,size = sumNB$theta)
+y_NBMW <- dnbinom(x,mu=mu_NBMW,size = sumNB$theta)
+y_NBS <- dnbinom(x,mu=mu_NBS,size = sumNB$theta)
+
+
+## Plot empirical distribution and predicted distribution for NB
+hist(pci[regions=="W"],col="blue",ylim=c(0,.0001),freq=FALSE)
+points(x,y_hatW,col="red")
+points(x,y_NBW,col="green")
+
+hist(pci[regions=="NE"],col="blue",freq=FALSE)
+points(x,y_hatNE,col="red")
+points(x,y_NBNE,col="green")
+lines(x,y_NBNE,col="green")
+
+hist(pci[regions=="MW"],col="blue",freq=FALSE)
+points(y_hatMW,col="red")
+points(y_NBMW,col="green")
+lines(y_NBMW,col="green")
+
+hist(pci[regions=="S"],col="blue",freq=FALSE)
+points(x,y_hatS,col="red")
+points(x,y_NBS,col="green")
+lines(x,y_NBS,col="green")
+
+## 5. Compare models
+
+-2*(logLik(POI)[1]-logLik(NB)[1])     #332244.5
+qchisq(1-0.05,1)                      # 3.84 with alpha=5%
+#Since 3.84<332245 We reject the Poisson model with the new NB model instead, with alpha=5%
+
+#Maybe ANOVA can be used but not necassary
 #NB2 <- update(NB, . ~ . - regions)
 #anova(NB, NB2)
 
--2*(logLik(NB)[1]-logLik(POI)[1])     #-332244.5
-qchisq(1-0.05,1)                      # 3.84 with alpha=5%
-#Since -332245<3.84 We reject the Poisson model with the new NB model instead, with alpha=5%
 
+## 6. probability of pci for generic western region between 18000 $ and 10000 $
+probPOI <- ppois(18000,mu_hatW)-ppois(10000,mu_hatW)
+probNB <- pnbinom(q=18000,size=sumNB$theta,mu=mu_hatW)-pnbinom(q=10000,size=sumNB$theta,mu=mu_hatW)
 
-#6. (partially shown at lecture when discussing quantiles for discrete distributions) Compute the probability that, for a
-#generic county in the Western region, CRM1000* is between, say, 60 and 80 using the estimated Poisson and NB models.
-#Do you find any striking difference?
+# The Poisson model overestimates alot compared with the NB model, factor of 2.
 
-y <- seq(0,40000,1000)
-POIcoeff <- POI$coefficients
-mu_hat_POI = exp(POIcoeff[1])
+## 7. Linear regression
+L <- lm(pci~regions) 
+sumL = summary(L)
 
-#Likelyhood that a West region has 18k-10k PCI:
-pPOI <- (ppois(18000,mu_hat_POI)-ppois(10000,mu_hat_POI))*100 
+mu_LW <- L$coefficients[1]
+mu_LNE <- L$coefficients[1]+L$coefficients[2]
+mu_LMW <- L$coefficients[1]+L$coefficients[3]
+mu_LS <- L$coefficients[1]+L$coefficients[4]
 
-#For plotting the probability density function 
-Py<-dpois(y,mu_hat_POI, log = FALSE)
-#Py<-dpois(y,mu_hat_POI, log = FALSE)
-plot(y, Py, type="h",ylim=c(0,0.0035), xlim=c(0,40000),xlab="y",ylab="P(Y=y)", main="Poisson distributions")
-sum(Py)
-sum(Py[0:40000])
+y_LW <- dnorm(x,mu_LW,sumL$coefficients[5])
 
-#Py<-(dpois(pci[regions=="W"],mu_hat_POI))
-#plot(pci[regions=="W"], Py, type="h",ylim=c(0,0.0015), xlim=c(0,40000),xlab="y",ylab="P(Y=y)", main="Poisson distributions")
-#sum(Py)
-#sum(Py[10000:19000])
-#Poisson distribution for the Negative Binomial model
-NBcoeff <- NB$coefficients
-mu_hat_NB = exp(NBcoeff[1])
+## Plot of linear regression for West
+hist(pci[regions=="W"],col="blue",ylim=c(0,.0005),freq=FALSE)
+points(y_hatW,col="red")
+points(y_NBW,col="green")
+points(y_LW, col="orange")
 
-PyNB <- dnbinom(y,25.28, mu_hat_NB)
-plot(y, PyNB, type="h",ylim=c(0,0.0015), xlim=c(0,40000),xlab="y",ylab="P(Y=y)", main="Poisson distributions")
+## 8. quantile regression
+modelQ <- rq(pci~regions, tau=c(.025,.5,.975))
+y_rq <- predict(modelQ)
+summary(modelQ)
 
+## Extract coefficients
+betaQ <- coef(modelQ)
+## Extract residuals 
+resQ <- resid(modelQ)
 
-#7. (not explicitly shown at lecture) Compute the probability as in point 7 for when a linear regression model is used,
-#with response variable logCRM1000* and region as covariate. Compare with the results obtained in 7.
-L <- lm(pci~regions)
-summary(L)
-pL = pnorm(18000, 18322.58, 444.02)-pnorm(10000, 18322.58, 444.02)
-
-#8. Use the “distribution-free” quantile regression method to compute median criminality conditionally on the several regions
-#and check if this is any similar to the mean criminality as estimated with linear regression and NB
-#regression, for the several regions. In addition check that the 2.5-97.5th quantiles are similar (or not) to the 95%
-#confidence bounds returned by linear and/or NB regression.
-
-## Quantile regression:
-RQ <- rq(pci ~ regions, tau=c(.1,.5,.9))
-## See help(predict.rq) for more info:
-yRQ <- predict(RQ)
-plot(regions, yRQ)
-lines(pci,yRQ[,1],col="red")
-lines(pci,yRQ[,2],col="red")
-lines(pci,yRQ[,3],col="red")
-
-sum <- summary(RQ)
-sum
-## Extract coefficients:
-beta <- coef(RQ)
-beta
-## Extract residuals:
-res <- resid(RQ)
-res
-
-
-
-
-#9. Expand on the suggestions above by considering multivariate models to compute similar predictions.
-
-
-
-#10. ...more ideas...
+## Compare median fron QR with mean in NB and Linear
+ciNBW_lo<-exp(log(mu_hatW)-1.96*sumL$coefficients[5]) # 67.2
+ciNBW_hi<-exp(log(mu_hatW)+1.96*sumL$coefficients[5]) # 56.0
