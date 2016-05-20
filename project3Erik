@@ -109,7 +109,7 @@ points(y_hatNE,col="red")
 points(y_NBNE,col="green")
 lines(y_NBNE,col="green")
 
-hist(crm[regions=="MW"],col="blue",freq=FALSE,breaks=c(12*0:15))
+hist(crm[regions=="MW"],col="blue",freq=FALSE,breaks=c(10*0:17),ylim=c(0,.05))
 points(y_hatMW,col="red")
 points(y_NBMW,col="green")
 lines(y_NBMW,col="green")
@@ -124,7 +124,7 @@ lines(y_NBS,col="green")
 qchisq(1-0.05,1) # 3.84 < 2750 reject Poisson model at 0.05 significance 
 
 ## 6. probability of crm for generic western region between 60-80
-probPO <- sum(y_hatW[60:80])
+probPO <- sum(y_hatW[1:80]) - sum(y_hatW[1:60])
 probNB <- sum(y_NBW[60:80])
 
 probPo <- ppois(80,mu_hatW)-ppois(60,mu_hatW)
@@ -142,12 +142,19 @@ mu_LMW <- modelL$coefficients[1]+modelL$coefficients[3]
 mu_LS <- modelL$coefficients[1]+modelL$coefficients[4]
 
 y_LW <- dnorm(x,mu_LW,2.828)
+y_LMW <- dnorm(x,mu_LMW,3.701)
 
 ## Plot of linear regression for West
-hist(crm[regions=="W"],col="blue",ylim=c(0,.05),freq=FALSE,breaks=c(5*6:20))
+hist(crm[regions=="W"],col="blue",ylim=c(0,.1),freq=FALSE,breaks=c(5*6:20))
 points(y_hatW,col="red")
 points(y_NBW,col="green")
 points(y_LW, col="orange")
+
+hist(crm[regions=="MW"],col="blue",freq=FALSE,breaks=c(10*0:17),ylim=c(0,.05))
+points(y_hatMW,col="red")
+points(y_NBMW,col="green")
+points(y_LMW,col="orange")
+legend(140, .05, c("Empirical","Po", "NB", "Linear"),fill = c("blue","red","green","orange") ,col = c("blue","red","green","orange"))
 
 ## 8. quantile regression
 modelQ <- rq(crm~regions, tau=c(.025,.5,.975))
@@ -163,6 +170,9 @@ resQ <- resid(modelQ)
 ciNBW_lo<-exp(log(mu_hatW)-1.96*.0466) # 67.2
 ciNBW_hi<-exp(log(mu_hatW)+1.96*.0466) # 56.0
 
+ciNBW_lo<-exp(log(mu_hatMW)-1.96*.06122) # 45.8
+ciNBW_hi<-exp(log(mu_hatMW)+1.96*.06122) # 58.2
+
 ciLW_lo <- mu_hatW-1.96*2.828 # 66.9
 ciLW_hi <- mu_hatW+1.96*2.828 # 55.8
 
@@ -177,4 +187,19 @@ ciLW_hi <- mu_hatW+1.96*2.828 # 55.8
 #regionsS     10.00000      4.21579  21.89210
 
 #Call: rq(formula = crm ~ regions, tau = c(0.025, 0.5, 0.975))
-# Will not yield the smallest variance but can still yield a good model. 
+# Will not yield the smallest variance but can still yield a good model.  
+
+## With continuous covariate
+modelCNB <- glm.nb(crm~regions+poors+unemployed+higrads)
+summary(modelCNB)
+
+modelOpt <- step(modelNB,scope = list(lower=modelNB,upper=modelCNB),direction = "both")
+
+model.NB <- glm.nb(crm~regions+poors)
+summary(model.NB)
+
+mu_hatNB<-predict(model.NB,type="response")
+xb_hatNB<-predict(model.NB,se.fit=T)
+
+plot(poors[regions=="MW"],crm[regions=="MW"])
+points(poors[regions=="MW"],mu_hatNB[regions=="MW"], col="red")
