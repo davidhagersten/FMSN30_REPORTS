@@ -1,4 +1,4 @@
-# Project 3 - CRM is done first then PCI
+# Project 3 - CRM is first then PCI
 
 
 ## Requires once:
@@ -89,15 +89,19 @@ y_hatS <- dpois(x,mu_hatS)
 ## Plot empirical distribution and predicted distribution for Poission
 hist(crm[regions=="W"],col="blue",ylim=c(0,.05),freq=FALSE,breaks=c(5*6:20))
 points(y_hatW,col="red")
+lines(y_hatW,col="red")
 
 hist(crm[regions=="NE"],col="blue",freq=FALSE,breaks=c(25*0:12))
 points(y_hatNE,col="red")
+lines(y_hatNE,col="red")
 
 hist(crm[regions=="MW"],col="blue",freq=FALSE,breaks=c(12*0:15))
 points(y_hatMW,col="red")
+lines(y_hatMW,col="red")
 
 hist(crm[regions=="S"],col="blue",freq=FALSE,breaks = c(5*5:30))
 points(y_hatS,col="red")
+lines(y_hatS,col="red")
 
 
 ## 4. NB regression
@@ -150,7 +154,7 @@ probPO <- sum(y_hatW[60:80])
 probNB <- sum(y_NBW[60:80])
 
 probPo <- ppois(80,mu_hatW)-ppois(60,mu_hatW)
-probNB <- pnbinom(q=80,size=6.627,mu=mu_hatW)-pnbinom(q=60,size=6.627,mu=mu_hatW)
+probNB <- pnbinom(q=80,size=summodelNB$theta,mu=mu_hatW)-pnbinom(q=60,size=summodelNB$theta,mu=mu_hatW)
 
 # The Poisson model overestimates alot compared with the NB model, factor of 2.
 
@@ -181,7 +185,7 @@ betaQ <- coef(modelQ)
 ## Extract residuals 
 resQ <- resid(modelQ)
 
-## Compare median fron QR with mean in NB and Linear
+## Compare median from QR with mean in NB and Linear
 ciNBW_lo<-exp(log(mu_hatW)-1.96*summodelL$coefficients[5]) # 67.2
 ciNBW_hi<-exp(log(mu_hatW)+1.96*summodelL$coefficients[5]) # 56.0
 
@@ -199,6 +203,23 @@ ciNBW_hi<-exp(log(mu_hatW)+1.96*summodelL$coefficients[5]) # 56.0
 
 #PCI sammanställning
 
+
+## Read data
+data_1 <- read.table("http://www.maths.lth.se/matstat/kurser/masm22/exercise/dataCDI.txt",header=FALSE,sep="")
+colnames(data_1) <- c("id","county","state","area","pop","pop1834","pop65","phys","beds","crimes","higrads","bachelors","poors","unemployed","pci","totinc","region")
+attach(data_1)
+
+## Requires once:
+#install.packages("quantreg")
+#install.packages("ggplot2")
+#install.packages("quantreg")
+#and in every session:
+library(quantreg)
+require(foreign)
+require(ggplot2)
+require(MASS)
+library(quantreg)
+
 ## Creating variables
 n = 440
 
@@ -213,6 +234,8 @@ x_mw = mat.or.vec(n,1)
 x_mw[regions=="MW"] = 1
 x_s = mat.or.vec(n,1)
 x_s[regions=="S"] = 1
+
+regs <- data.frame(pci=pci, West=x_w, NorthEast=x_ne, MidWest=x_mw, South=x_s )
 
 #REGULAR R-plots
 #regs <- data.frame(pci=pci, West=x_w, NorthEast=x_ne, MidWest=x_mw, South=x_s )
@@ -235,7 +258,7 @@ ggplot(dat, aes(pci, fill = regions)) +
   facet_grid(regions ~. , margins=TRUE, scales="free")
 
 ## Fit model calculate mean from each regon by hand using formula. compute probability with dpois.
-POI <- glm(pci~regions,family = "poisson",data = regs)
+POI <- glm(pci~regions,family = "poisson")
 summary(POI)
 
 ## Calculate estimate of the linear part mu_i = X_i*b
@@ -259,7 +282,7 @@ mu_hatMW <- exp(beta[1]+beta[3])
 mu_hatS <- exp(beta[1]+beta[4])
 
 ## Compute estimated probabilities
-x <- seq(10000,40000,500)
+x <- seq(5000,40000,500)
 y_hatW <- dpois(x,mu_hatW)
 y_hatNE <- dpois(x,mu_hatNE)
 y_hatMW <- dpois(x,mu_hatMW)
@@ -268,15 +291,20 @@ y_hatS <- dpois(x,mu_hatS)
 ## Plot empirical distribution and predicted distribution for Poission
 hist(pci[regions=="W"],col="blue",freq=FALSE,ylim=c(0,.0001))
 points(x, y_hatW,pch = 21, col="red")
+lines(x, y_hatW,pch = 21, col="red")
+#legend(x=NULL, y=NULL, Emperical)
 
 hist(pci[regions=="NE"],col="blue",freq=FALSE)
 points(x, y_hatNE,col="red")
+lines(x, y_hatNE,col="red")
 
 hist(pci[regions=="MW"],col="blue",freq=FALSE)
 points(x, y_hatMW,col="red")
+lines(x, y_hatMW,col="red")
 
 hist(pci[regions=="S"],col="blue",freq=FALSE)
-points(y_hatS,col="red")
+points(x, y_hatS,col="red")
+lines(x, y_hatS,col="red")
 
 
 ## 4. NB regression
@@ -288,7 +316,7 @@ NB2 <- glm.nb(pci~regions+bachelors, data_1)
 summary(NB2)
 BIC(NB2)
 
-NB3 <- glm.nb(pci~regions+bachelors, data_1)
+NB3 <- glm.nb(pci~regions, data_1)
 summary(NB3)
 BIC(NB3)
 
@@ -309,31 +337,34 @@ y_NBS <- dnbinom(x,mu=mu_NBS,size = sumNB$theta)
 
 
 ## Plot empirical distribution and predicted distribution for NB
-hist(pci[regions=="W"],col="blue",ylim=c(0,.0001),freq=FALSE)
+hist(pci[regions=="W"],col="blue",ylim=c(0,.00012),freq=FALSE)
 points(x,y_hatW,col="red")
+lines(x,y_hatW,col="red")
 points(x,y_NBW,col="green")
+lines(x,y_NBW,col="green")
 
 hist(pci[regions=="NE"],col="blue",freq=FALSE)
 points(x,y_hatNE,col="red")
+lines(x,y_hatNE,col="red")
 points(x,y_NBNE,col="green")
 lines(x,y_NBNE,col="green")
 
 hist(pci[regions=="MW"],col="blue",freq=FALSE)
-points(y_hatMW,col="red")
-points(y_NBMW,col="green")
-lines(y_NBMW,col="green")
+points(x, y_hatMW,col="red")
+lines(x, y_hatMW,col="red")
+points(x, y_NBMW,col="green")
+lines(x, y_NBMW,col="green")
 
 hist(pci[regions=="S"],col="blue",freq=FALSE)
 points(x,y_hatS,col="red")
+lines(x,y_hatS,col="red")
 points(x,y_NBS,col="green")
 lines(x,y_NBS,col="green")
 
 ## 5. Compare models
-
 -2*(logLik(POI)[1]-logLik(NB)[1])     #332244.5
 qchisq(1-0.05,1)                      # 3.84 with alpha=5%
 #Since 3.84<332245 We reject the Poisson model with the new NB model instead, with alpha=5%
-
 #Maybe ANOVA can be used but not necassary
 #NB2 <- update(NB, . ~ . - regions)
 #anova(NB, NB2)
@@ -342,11 +373,12 @@ qchisq(1-0.05,1)                      # 3.84 with alpha=5%
 ## 6. probability of pci for generic western region between 18000 $ and 10000 $
 probPOI <- ppois(18000,mu_hatW)-ppois(10000,mu_hatW)
 probNB <- pnbinom(q=18000,size=sumNB$theta,mu=mu_hatW)-pnbinom(q=10000,size=sumNB$theta,mu=mu_hatW)
+probPOI
+probNB
 
-# The Poisson model overestimates alot compared with the NB model, factor of 2.
 
 ## 7. Linear regression
-L <- lm(pci~regions) 
+L <- lm(pci~regions)
 sumL = summary(L)
 
 mu_LW <- L$coefficients[1]
@@ -358,9 +390,13 @@ y_LW <- dnorm(x,mu_LW,sumL$coefficients[5])
 
 ## Plot of linear regression for West
 hist(pci[regions=="W"],col="blue",ylim=c(0,.0005),freq=FALSE)
-points(y_hatW,col="red")
-points(y_NBW,col="green")
-points(y_LW, col="orange")
+points(x, y_hatW,col="red")
+lines(x, y_hatW,col="red")
+points(x, y_NBW,col="green")
+lines(x, y_NBW,col="green")
+points(x, y_LW, col="orange")
+lines(x, y_LW, col="orange")
+legend(30000, .0005, c("Empirical","Po", "NB", "Linear"),fill = c("blue","red","green","orange") ,col = c("blue","red","green","orange"))
 
 ## 8. quantile regression
 modelQ <- rq(pci~regions, tau=c(.025,.5,.975))
@@ -372,6 +408,110 @@ betaQ <- coef(modelQ)
 ## Extract residuals 
 resQ <- resid(modelQ)
 
-## Compare median fron QR with mean in NB and Linear
-ciNBW_lo<-exp(log(mu_hatW)-1.96*sumL$coefficients[5]) # 67.2
-ciNBW_hi<-exp(log(mu_hatW)+1.96*sumL$coefficients[5]) # 56.0
+## Compare median from QR with mean in NB and Linear
+ciNBW_lo<-exp(log(mu_hatW)-1.96*sumL$coefficients[5])
+ciNBW_hi<-exp(log(mu_hatW)+1.96*sumL$coefficients[5])
+
+
+
+
+
+
+###MULTIVARIATE PCI MODEL (with bachelors)
+
+NB <- glm.nb(pci~regions+crm, data_1)
+sumNB = summary(NB)
+
+## Calculate estimated mu
+betaNB <- NB$coefficients
+bNB <- exp(betaNB)
+mu_NBW <- exp(betaNB[1])
+mu_NBNE <- exp(betaNB[1]+betaNB[2])
+mu_NBMW <- exp(betaNB[1]+betaNB[3])
+mu_NBS <- exp(betaNB[1]+betaNB[4])
+
+## Compute estimated probabilities
+
+y_NBW <- dnbinom(x,mu=mu_NBW,size = sumNB$theta)
+y_NBNE <- dnbinom(x,mu=mu_NBNE,size = sumNB$theta)
+y_NBMW <- dnbinom(x,mu=mu_NBMW,size = sumNB$theta)
+y_NBS <- dnbinom(x,mu=mu_NBS,size = sumNB$theta)
+
+
+## Plot empirical distribution and predicted distribution for NB
+hist(pci[regions=="W"],col="blue",ylim=c(0,.00012),freq=FALSE)
+points(x,y_hatW,col="red")
+lines(x,y_hatW,col="red")
+points(x,y_NBW,col="green")
+lines(x,y_NBW,col="green")
+
+hist(pci[regions=="NE"],col="blue",freq=FALSE)
+points(x,y_hatNE,col="red")
+lines(x,y_hatNE,col="red")
+points(x,y_NBNE,col="green")
+lines(x,y_NBNE,col="green")
+
+hist(pci[regions=="MW"],col="blue",freq=FALSE)
+points(x, y_hatMW,col="red")
+lines(x, y_hatMW,col="red")
+points(x, y_NBMW,col="green")
+lines(x, y_NBMW,col="green")
+
+hist(pci[regions=="S"],col="blue",freq=FALSE)
+points(x,y_hatS,col="red")
+lines(x,y_hatS,col="red")
+points(x,y_NBS,col="green")
+lines(x,y_NBS,col="green")
+
+## 5. Compare models
+-2*(logLik(NB3)[1]-logLik(NB)[1])     #332244.5
+qchisq(1-0.05,1)                      # 3.84 with alpha=5%
+#Since 3.84<332245 We reject the Poisson model with the new NB model instead, with alpha=5%
+#Maybe ANOVA can be used but not necassary
+#NB2 <- update(NB, . ~ . - regions)
+#anova(NB, NB2)
+
+
+## 6. probability of pci for generic western region between 18000 $ and 10000 $
+probPOI <- ppois(18000,mu_hatW)-ppois(10000,mu_hatW)
+probNB <- pnbinom(q=18000,size=sumNB$theta,mu=mu_hatW)-pnbinom(q=10000,size=sumNB$theta,mu=mu_hatW)
+probPOI
+probNB
+
+# The Poisson model overestimates alot compared with the NB model, factor of 2.
+
+## 7. Linear regression
+L <- lm(pci~regions)
+sumL = summary(L)
+
+mu_LW <- L$coefficients[1]
+mu_LNE <- L$coefficients[1]+L$coefficients[2]
+mu_LMW <- L$coefficients[1]+L$coefficients[3]
+mu_LS <- L$coefficients[1]+L$coefficients[4]
+
+y_LW <- dnorm(x,mu_LW,sumL$coefficients[5])
+
+## Plot of linear regression for West
+hist(pci[regions=="W"],col="blue",ylim=c(0,.0005),freq=FALSE)
+points(x, y_hatW,col="red")
+lines(x, y_hatW,col="red")
+points(x, y_NBW,col="green")
+lines(x, y_NBW,col="green")
+points(x, y_LW, col="orange")
+lines(x, y_LW, col="orange")
+legend(30000, .0005, c("Empirical","Po", "NB", "Linear"),fill = c("blue","red","green","orange") ,col = c("blue","red","green","orange"))
+
+## 8. quantile regression
+modelQ <- rq(pci~regions, tau=c(.025,.5,.975))
+y_rq <- predict(modelQ)
+summary(modelQ)
+
+## Extract coefficients
+betaQ <- coef(modelQ)
+## Extract residuals 
+resQ <- resid(modelQ)
+
+## Compare median from QR with mean in NB and Linear
+ciNBW_lo<-exp(log(mu_hatW)-1.96*sumL$coefficients[5])
+ciNBW_hi<-exp(log(mu_hatW)+1.96*sumL$coefficients[5])
+
